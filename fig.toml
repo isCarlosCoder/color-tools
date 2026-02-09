@@ -1,0 +1,11 @@
+[project]
+name = 'color-tools'
+version = '0.1.0'
+description = 'Color utilities for Fig'
+type = 'library'
+main = 'src/main.fig'
+
+[authors]
+name = 'isCarlosCoder'
+
+[dependencies]

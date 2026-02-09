@@ -1,0 +1,158 @@
+use "math"
+use "strings"
+use "system"
+
+let _reset = "\x1b[0m"
+
+fn _assert(condition, message) {
+	if (!condition) {
+		if (message == null || message == "") {
+			message = "assertion failed"
+		}
+		print("color-tools assert: " + message)
+		system.exit(1)
+	}
+}
+
+fn _clampChannel(value) {
+	return math.clamp(math.round(value), 0, 255)
+}
+
+fn _clampAlpha(value) {
+	return math.clamp(value, 0, 1)
+}
+
+fn rgb(r, g, b) {
+	return {r: _clampChannel(r), g: _clampChannel(g), b: _clampChannel(b), a: 1}
+}
+
+fn rgba(r, g, b, a) {
+	return {r: _clampChannel(r), g: _clampChannel(g), b: _clampChannel(b), a: _clampAlpha(a)}
+}
+
+fn withAlpha(color, a) {
+	return rgba(color.r, color.g, color.b, a)
+}
+
+fn _hexDigit(value) {
+	let digits = "0123456789abcdef"
+	return strings.charAt(digits, value)
+}
+
+fn _hexToValue(ch) {
+	let digits = "0123456789abcdef"
+	let idx = strings.indexOf(digits, strings.lower(ch))
+	return idx
+}
+
+fn _hexPair(value) {
+	let v = _clampChannel(value)
+	let hi = math.floor(v / 16)
+	let lo = v - (hi * 16)
+	return _hexDigit(hi) + _hexDigit(lo)
+}
+
+fn toHex(color) {
+	return "#" + _hexPair(color.r) + _hexPair(color.g) + _hexPair(color.b)
+}
+
+fn fromHex(hex) {
+	let h = strings.lower(hex)
+	if (strings.startsWith(h, "#")) {
+		h = strings.substring(h, 1, strings.len(h))
+	}
+
+	if (strings.len(h) == 3) {
+		let r = strings.charAt(h, 0)
+		let g = strings.charAt(h, 1)
+		let b = strings.charAt(h, 2)
+		h = r + r + g + g + b + b
+	}
+
+	_assert(strings.len(h) == 6, "invalid hex color")
+
+	let r1 = _hexToValue(strings.charAt(h, 0))
+	let r2 = _hexToValue(strings.charAt(h, 1))
+	let g1 = _hexToValue(strings.charAt(h, 2))
+	let g2 = _hexToValue(strings.charAt(h, 3))
+	let b1 = _hexToValue(strings.charAt(h, 4))
+	let b2 = _hexToValue(strings.charAt(h, 5))
+
+	_assert(r1 != -1 && r2 != -1 && g1 != -1 && g2 != -1 && b1 != -1 && b2 != -1, "invalid hex color")
+
+	let r = (r1 * 16) + r2
+	let g = (g1 * 16) + g2
+	let b = (b1 * 16) + b2
+	return rgb(r, g, b)
+}
+
+fn mix(a, b, t) {
+	let ratio = math.clamp(t, 0, 1)
+	let r = (a.r * (1 - ratio)) + (b.r * ratio)
+	let g = (a.g * (1 - ratio)) + (b.g * ratio)
+	let bch = (a.b * (1 - ratio)) + (b.b * ratio)
+	let alpha = (a.a * (1 - ratio)) + (b.a * ratio)
+	return rgba(r, g, bch, alpha)
+}
+
+fn lighten(color, amount) {
+	return mix(color, rgb(255, 255, 255), amount)
+}
+
+fn darken(color, amount) {
+	return mix(color, rgb(0, 0, 0), amount)
+}
+
+fn invert(color) {
+	return rgba(255 - color.r, 255 - color.g, 255 - color.b, color.a)
+}
+
+fn toRgbString(color) {
+	return "rgb(" + color.r + ", " + color.g + ", " + color.b + ")"
+}
+
+fn toRgbaString(color) {
+	return "rgba(" + color.r + ", " + color.g + ", " + color.b + ", " + color.a + ")"
+}
+
+fn fgCode(color) {
+	return "\x1b[38;2;" + color.r + ";" + color.g + ";" + color.b + "m"
+}
+
+fn bgCode(color) {
+	return "\x1b[48;2;" + color.r + ";" + color.g + ";" + color.b + "m"
+}
+
+fn reset() { return _reset }
+
+fn paint(text, color) {
+	return fgCode(color) + text + _reset
+}
+
+fn paintBg(text, color) {
+	return bgCode(color) + text + _reset
+}
+
+fn runTests() {
+	let red = rgb(255, 0, 0)
+	let hex = toHex(red)
+	_assert(hex == "#ff0000", "toHex red")
+
+	let parsed = fromHex("#0f0")
+	_assert(toHex(parsed) == "#00ff00", "fromHex short")
+
+	let mixed = mix(rgb(0, 0, 0), rgb(255, 255, 255), 0.5)
+	_assert(toHex(mixed) == "#808080", "mix mid")
+
+	let lit = lighten(rgb(10, 10, 10), 0.5)
+	_assert(lit.r >= 10 && lit.g >= 10 && lit.b >= 10, "lighten")
+
+	let inv = invert(rgb(1, 2, 3))
+	_assert(toHex(inv) == "#fefdfc", "invert")
+
+	print("color-tools tests ok")
+}
+
+if (system.env("FIG_COLOR_TOOLS_TEST") == "1") {
+	runTests()
+}
