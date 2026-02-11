@@ -5,19 +5,19 @@ Modulo utilitario para manipulacao de cores, conversao de hex e uso de ANSI 24-b
 ## Instalar no projeto
 
 ```bash
-fig install isCarlosCoder/color-tools
+fig install color-tools
 ```
 
 ## Importar
 
 ```js
-import "mod:isCarlosCoder/color-tools" color
+import "mod:color-tools" color
 ```
 
 ## Uso basico
 
 ```js
-import "mod:isCarlosCoder/color-tools" color
+import "mod:color-tools" color
 
 let red = color.rgb(255, 0, 0)
 print(color.toHex(red))
